@@ -1,0 +1,11 @@
+{
+  "name": "tcmp-api",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.18.2"  // 仅保留必要依赖，减少安装问题
+  },
+  "scripts": {
+    "start": "node server.js",  // 必须有这个启动命令
+    "build": "echo 'Build complete'"  // 新增空build命令，避免Vercel报错
+  }
+}
