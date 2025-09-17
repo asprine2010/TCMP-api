@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const { Client, handle_file } = require('gradio_client');
+const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -21,7 +23,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // 确保uploads目录存在
-const fs = require('fs');
 if (!fs.existsSync('./uploads')) {
   fs.mkdirSync('./uploads');
 }
@@ -31,9 +32,8 @@ app.get('/api/test', (req, res) => {
   res.json({ success: true, message: 'API运行正常' });
 });
 
-// 微信配置接口（实际使用时需要完善签名逻辑）
+// 微信配置接口（简化版）
 app.get('/api/wx/config', (req, res) => {
-  // 这里简化处理，实际需要从微信服务器获取签名
   res.json({
     success: true,
     appId: 'wx_test_appid',
@@ -55,7 +55,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   });
 });
 
-// 识别图片接口
+// 识别图片接口（核心修改：用axios调用TCMPRecognition API）
 app.post('/api/recognize', async (req, res) => {
   try {
     const { filename } = req.body;
@@ -65,16 +65,36 @@ app.post('/api/recognize', async (req, res) => {
     
     const imagePath = `./uploads/${filename}`;
     
-    // 调用TCMPRecognition API
-    const client = new Client("winycg/TCMPRecognition");
-    const result = await client.predict(
-      handle_file(imagePath),
-      api_name="/predict"
+    // 构造表单数据，模拟前端上传图片到TCMPRecognition
+    const formData = new FormData();
+    formData.append('image', fs.createReadStream(imagePath));  // 读取本地图片
+    
+    // 调用TCMPRecognition的Gradio API（关键：直接调用其公开接口）
+    const response = await axios.post(
+      'https://winycg-tcmprecognition.hf.space/run/predict',  // TCMP的公开API端点
+      {
+        data: [
+          {
+            path: imagePath,
+            url: null,  // 本地文件上传时url为null
+            is_stream: false
+          }
+        ]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
+    
+    // 解析API返回结果
+    const result = response.data.data[0];
     
     // 删除临时文件
     fs.unlinkSync(imagePath);
     
+    // 返回处理后的结果
     res.json({
       success: true,
       result: {
@@ -83,9 +103,10 @@ app.post('/api/recognize', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('识别错误:', error.message);
     res.json({
       success: false,
-      error: error.message
+      error: error.message || '识别失败'
     });
   }
 });
@@ -94,3 +115,4 @@ app.post('/api/recognize', async (req, res) => {
 app.listen(port, () => {
   console.log(`服务运行在端口 ${port}`);
 });
+    
