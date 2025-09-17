@@ -1,9 +1,21 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" }
+    {
+      "src": "server.js",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["**"] }  // 强制包含所有文件
+    }
   ],
   "routes": [
     { "src": "/(.*)", "dest": "server.js" }
-  ]
+  ],
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "commands": [
+      "npm install"  // 强制执行依赖安装
+    ]
+  }
 }
