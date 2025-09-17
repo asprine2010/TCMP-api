@@ -6,7 +6,7 @@ const app = express();
 app.get('/api/test', (req, res) => {
   res.json({
     success: true,
-    message: '服务正常启动',
+    message: '服务正常启动2',
     time: new Date().toLocaleString()
   });
 });
